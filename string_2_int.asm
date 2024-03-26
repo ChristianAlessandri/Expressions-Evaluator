@@ -37,7 +37,7 @@
 		mv t0, a0 # string
 		li t1 0   # len
 
-		# string length
+		# get string length
 		start_string_len_string_2_int:
 		    lb t2, 0(t0)                         # t2 = curChar
 		    beqz t2, end_string_len_string_2_int # curChar == "\0"
@@ -86,9 +86,9 @@
 			
 			# recovery ra
 			lw ra 0(sp)
+			addi sp, sp, 4
 			
 			# recovery digit
-			addi sp, sp, 4
 			lw t3 0(sp)
 			addi sp, sp, 4
 			
@@ -115,7 +115,7 @@
 		
 		
 	pow:
-		# backup t0 and t1
+		# backup t0, t1 and ra
 		addi sp sp -12
 	    sw t0 0(sp)
 	    sw t1 4(sp)
@@ -134,7 +134,7 @@
 			addi t1 t1 -1 # exp--
 		j start_loop_pow
 		end_loop_pow:
-		# recovery t0 and t1
+		# recovery t0, t1 and ra
 		lw t0 0(sp)
 	    lw t1 4(sp)
 	    lw ra 8(sp)

@@ -4,6 +4,12 @@
 	ecall
 .end_macro
 
+.macro wrap()
+	li a0 10
+	li a7 11
+	ecall
+.end_macro
+
 .data
 	alpha: .word -20
 	beta: .word 6
