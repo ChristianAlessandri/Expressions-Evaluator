@@ -26,9 +26,7 @@
 		mv t1 a1 # b
 		li t2 0  # isResultNegative, 0 = false, 1 = true
 		
-		#############################
-		###   SIGN VERIFICATION   ###
-		#############################
+		# sign verification
 		# a<0 ? a=-a : pass
 		bltz t0 a_negative_divide
 		j b_sign_verification_divide

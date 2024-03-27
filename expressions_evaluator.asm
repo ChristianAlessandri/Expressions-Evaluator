@@ -23,13 +23,16 @@
 
 
 .data
-	inpt_expr: .string "o3*2"
+	inpt_expr: .string "3*2"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
-	str_err_syntactical: .string "SYNTACTICAL ERROR: Unrecognized character"     # exit code: -3
+	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"     # exit code: -3
 	
 	
 .text
+	################
+	###   MAIN   ###
+	################
 	main:
 		la a0 inpt_expr
 		jal eval
@@ -45,7 +48,7 @@
 	######################
 	###   MATH ERROR   ###
 	######################
-	syntactical_error:
+	math_error:
 		# print error
 		la a0 str_err_div_4_zero
 		li a7 4
@@ -60,7 +63,7 @@
 	##########################
 	###   HARDWARE ERROR   ###
 	##########################
-	syntactical_error:
+	hardware_error:
 		# print error
 		la a0 str_err_div_4_zero
 		li a7 4
@@ -93,6 +96,9 @@
 	eval:
 		mv t0 a0  # expression
 		li t1 0   # len
+		li s0 0   # stNum
+		li s0 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
+		li s0 0   # ndNum
 		
 		# get string length
 		start_string_len_eval:
@@ -115,27 +121,82 @@
 		lw ra 0(sp)
 		addi sp sp 4
 		
-		# curChar == "(" ? handleEval() : pass
+		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
 		li t3 40    # t3 = "("
 		beq t2 t3 nest1_eval
 		j isNum1_eval
 		nest1_eval:
 			mv a0 t0
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
 			jal handle_eval
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
 			mv t0 a0 # new expression address
 			mv s0 a1 # stNum
-			
+			j end_stIf_eval
 		isNum1_eval:
 			mv a0 t0
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
 			jal string_2_int
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
 			mv t0 a0 # new expression address
 			mv s0 a1 # stNum
 		
 			addi s0 s0 1
 			beqz s0 syntactical_error
 			addi s0 s0 -1
-			
+		end_stIf_eval:
+		
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# isOp(curChar) ? parseOp() : error
+		lb t2 0(t0) # t2 = curChar
+		
+		li t3 43    # +
+		beq t2 t3 parse_add1_eval
+		
+		li t3 45    # -
+		beq t2 t3 parse_sub1_eval
+		
+		li t3 42    # *
+		beq t2 t3 parse_mul1_eval
+		
+		li t3 47    # /
+		beq t2 t3 parse_div1_eval
+		j syntactical_error
+		
+		parse_add1_eval:
+		
+		parse_sub1_eval:
+		
+		parse_mul1_eval:
+		
+		parse_div1_eval:
 			
 			
 		ret
@@ -338,5 +399,98 @@
 	    lw t2 8(sp)
 	    lw t3 12(sp)
 	    addi sp sp 16
+		ret
+		
+	
+	##################
+	###   DIVIDE   ###
+	##################
+	divide:
+		# backup
+	    addi sp sp -28
+	    sw t0 0(sp)
+	    sw t1 4(sp)
+	    sw t2 8(sp)
+	    sw t3 12(sp)
+	    sw t4 16(sp)
+	    sw t5 20(sp)
+	    sw t6 24(sp)
+	    
+		mv t0 a0 # a
+		mv t1 a1 # b
+		beqz t1 math_error # b == 0 ? error : continue
+		li t2 0  # isResultNegative, 0 = false, 1 = true
+		
+		# sign verification
+		# a < 0 ? a = -a : pass
+		bltz t0 a_negative_divide
+		j b_sign_verification_divide
+		a_negative_divide:
+			li t2 1 # negative result
+			
+			# a = abs(a)
+			add t3 t0 zero
+			li t0 0
+			sub t0 t0 t3
+		
+		# b < 0 ? b = -b : pass
+		b_sign_verification_divide:
+		bltz t1 b_negative_divide
+		j end_sign_verification_divide
+		b_negative_divide:
+			# isResultNegative == 1 ? isResultNegative = 0 : isResultNegative = 1
+			xori t2 t2 1 # a * -b = -c, -a * -b = c
+		
+			# b = abs(b)
+			add t3 t1 zero
+			li t1 0
+			sub t1 t1 t3
+		
+		end_sign_verification_divide:
+		li t3 0 # res
+		
+		# while (a > b)
+		start_loop_divide:
+		blt t0 t1 ret_divide
+			li t4 0 # shiftValue = 0
+			
+			# while (a >= (b << shiftValue))
+			start_shift_loop_divide:
+			sll t5 t1 t4
+			blt t0 t5 end_shift_loop_divide
+				addi t4 t4 1 # shiftValue++
+			j start_shift_loop_divide
+			end_shift_loop_divide:
+			
+			# res += 1 << (shiftValue - 1)
+			addi t4 t4 -1
+			li t6 1
+			sll t5 t6 t4
+			add t3 t3 t5
+			
+			# a -= b << (shiftValue - 1)			
+			sll t5 t1 t4
+			sub t0 t0 t5
+		j start_loop_divide
+		
+		ret_divide:
+		beqz t2 pos_res_divide
+			# res = -res
+			add t4 t3 zero
+			sub t3 t3 t4
+			sub t3 t3 t4
+			
+		pos_res_divide:
+		add a0 t3 zero
+		
+		# recovery
+		lw t0 0(sp)
+	    lw t1 4(sp)
+	    lw t2 8(sp)
+	    lw t3 12(sp)
+	    lw t4 16(sp)
+	    lw t5 20(sp)
+	    lw t6 24(sp)
+	    addi sp sp 28
 		ret
 	
