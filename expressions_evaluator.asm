@@ -10,20 +10,42 @@
 
 
 .macro print_int(%int)
+	addi sp sp -8
+  	sw a0 0(sp)
+  	sw a7 4(sp)
+  	
 	mv a0, %int
 	li a7, 1
 	ecall
+	
+	lw a0 0(sp)
+    lw a7 4(sp)
+    addi sp sp 8
 .end_macro
 
 .macro wrap()
+	addi sp sp -8
+  	sw a0 0(sp)
+  	sw a7 4(sp)
+  		
 	li a0 10
 	li a7 11
+	ecall
+	
+	lw a0 0(sp)
+    lw a7 4(sp)
+    addi sp sp 8
+.end_macro
+
+.macro exit()
+	li a0 1
+	li a7 93
 	ecall
 .end_macro
 
 
 .data
-	inpt_expr: .string "3*2"
+	inpt_expr: .string "3 +2"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"     # exit code: -3
@@ -97,23 +119,14 @@
 		mv t0 a0  # expression
 		li t1 0   # len
 		li s0 0   # stNum
-		li s0 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
-		li s0 0   # ndNum
-		
-		# get string length
-		start_string_len_eval:
-		    lb t2 0(t0)                 # t2 = curChar
-		    beqz t2 end_string_len_eval # curChar == "\0"
-		    addi t0 t0 1                # next char
-		    addi t1 t1 1                # len++
-		    j start_string_len_eval
-		end_string_len_eval:
-		sub a0 a0 t2
+		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
+		li s2 0   # ndNum
 		
 		# backup ra
 		addi sp sp -4
 		sw ra 0(sp)
 		
+		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
@@ -125,7 +138,7 @@
 		lb t2 0(t0) # t2 = curChar
 		li t3 40    # t3 = "("
 		beq t2 t3 nest1_eval
-		j isNum1_eval
+		j is_num1_eval
 		nest1_eval:
 			mv a0 t0
 			
@@ -141,8 +154,8 @@
 			
 			mv t0 a0 # new expression address
 			mv s0 a1 # stNum
-			j end_stIf_eval
-		isNum1_eval:
+			j end_if1_eval
+		is_num1_eval:
 			mv a0 t0
 			
 			# backup ra
@@ -161,12 +174,13 @@
 			addi s0 s0 1
 			beqz s0 syntactical_error
 			addi s0 s0 -1
-		end_stIf_eval:
+		end_if1_eval:
 		
 		# backup ra
 		addi sp sp -4
 		sw ra 0(sp)
 		
+		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
@@ -190,14 +204,82 @@
 		beq t2 t3 parse_div1_eval
 		j syntactical_error
 		
-		parse_add1_eval:
-		
-		parse_sub1_eval:
-		
-		parse_mul1_eval:
-		
+		li s1 0
 		parse_div1_eval:
+		addi s1 s1 1
+		parse_mul1_eval:
+		addi s1 s1 1
+		parse_sub1_eval:
+		addi s1 s1 1
+		parse_add1_eval:
+		addi s1 s1 1
+		
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		addi t0 t0 1 # go to the next char
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
+		lb t2 0(t0) # t2 = curChar
+		li t3 40    # t3 = "("
+		beq t2 t3 nest2_eval
+		j is_num2_eval
+		nest2_eval:
+			mv a0 t0
 			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
+			jal handle_eval
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
+			mv t0 a0 # new expression address
+			mv s2 a1 # ndNum
+			j end_if2_eval
+		is_num2_eval:
+			add a0 t0 zero
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+		
+			jal string_2_int
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
+			mv t0 a0 # new expression address
+			mv s2 a1 # ndNum
+		
+			addi s2 s2 1
+			beqz s2 syntactical_error
+			addi s2 s2 -1
+		end_if2_eval:
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
 			
 		ret
 		
