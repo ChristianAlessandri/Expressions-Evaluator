@@ -23,6 +23,20 @@
     addi sp sp 8
 .end_macro
 
+.macro print_char(%char)
+	addi sp sp -8
+  	sw a0 0(sp)
+  	sw a7 4(sp)
+  	
+	mv a0, %char
+	li a7, 11
+	ecall
+	
+	lw a0 0(sp)
+    lw a7 4(sp)
+    addi sp sp 8
+.end_macro
+
 .macro wrap()
 	addi sp sp -8
   	sw a0 0(sp)
@@ -45,7 +59,7 @@
 
 
 .data
-	inpt_expr: .string "3*2"
+	inpt_expr: .string "3*(2+(3*(4+1)))"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
@@ -60,9 +74,21 @@
 	main:
 		la a0 inpt_expr
 		jal eval
+		mv t0 a0
 		
 		# print res
-		print_int(a0)
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		li t1 32
+		print_char(t1)
+		li t1 61
+		print_char(t1)
+		li t1 32
+		print_char(t1)
+		
+		print_int(t0)
 		
 		# return 0
     	li a7 10
@@ -143,6 +169,20 @@
 	###   EVAL   ###
 	################	
 	eval:
+		# backup
+		addi sp sp -44
+  		sw s0 0(sp)
+  		sw t0 4(sp)
+   		sw t1 8(sp)
+   		sw t2 12(sp)
+   		sw t3 16(sp)
+   		sw t4 20(sp)
+   		sw t5 24(sp)
+   		sw t6 28(sp)
+   		sw s0 32(sp)
+   		sw s1 36(sp)
+   		sw s2 40(sp)
+   		
 		mv t0 a0  # expression
 		li s0 0   # stNum
 		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
@@ -174,11 +214,12 @@
 			
 			jal handle_eval
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
 			
 			mv t0 a0 # new expression address
+			addi t0 t0 1
 			mv s0 a1 # stNum
 			j end_if1_eval
 		is_num1_eval:
@@ -267,12 +308,14 @@
 			
 			jal handle_eval
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
 			
 			mv t0 a0 # new expression address
+			addi t0 t0 1
 			mv s2 a1 # ndNum
+			
 			j end_if2_eval
 		is_num2_eval:
 			add a0 t0 zero
@@ -364,6 +407,20 @@
 		
 		ret_eval:
 		mv a0 s0
+		
+		# recovery
+  		lw s0 0(sp)
+  		lw t0 4(sp)
+   		lw t1 8(sp)
+   		lw t2 12(sp)
+   		lw t3 16(sp)
+   		lw t4 20(sp)
+   		lw t5 24(sp)
+   		lw t6 28(sp)
+   		lw s0 32(sp)
+   		lw s1 36(sp)
+   		lw s2 40(sp)
+   		addi sp sp 44
 		ret
 		
 	
@@ -371,6 +428,265 @@
 	###   HANDLE EVAL   ###
 	#######################
 	handle_eval:
+		# backup
+		addi sp sp -44
+  		sw t0 0(sp)
+   		sw t1 4(sp)
+   		sw t2 8(sp)
+   		sw t3 12(sp)
+   		sw t4 16(sp)
+   		sw t5 20(sp)
+   		sw t6 24(sp)
+   		sw s0 28(sp)
+   		sw s1 32(sp)
+   		sw s2 36(sp)
+   		sw ra 40(sp)
+   		
+		mv t0 a0  # expression
+		li s0 0   # stNum
+		addi t0 t0 1
+		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
+		li s2 0   # ndNum
+		
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
+		lb t2 0(t0) # t2 = curChar
+		li t3 40    # t3 = "("
+		beq t2 t3 nest1_handle_eval
+		j is_num1_handle_eval
+		nest1_handle_eval:
+			mv a0 t0
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
+			jal handle_eval
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
+			mv t0 a0 # new expression address
+			addi t0 t0 1
+			mv s0 a1 # stNum
+			j end_if1_handle_eval
+		is_num1_handle_eval:
+			mv a0 t0
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
+			jal string_2_int
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
+			mv t0 a0 # new expression address
+			mv s0 a1 # stNum
+		
+			addi s0 s0 1
+			beqz s0 syntactical_error
+			addi s0 s0 -1
+		end_if1_handle_eval:
+		
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# isOp(curChar) ? parseOp() : error
+		lb t2 0(t0) # t2 = curChar
+		
+		li t3 43    # +
+		beq t2 t3 parse_add1_handle_eval
+		
+		li t3 45    # -
+		beq t2 t3 parse_sub1_handle_eval
+		
+		li t3 42    # *
+		beq t2 t3 parse_mul1_handle_eval
+		
+		li t3 47    # /
+		beq t2 t3 parse_div1_handle_eval
+		j syntactical_error
+		
+		li s1 0
+		parse_div1_handle_eval:
+		addi s1 s1 1
+		parse_mul1_handle_eval:
+		addi s1 s1 1
+		parse_sub1_handle_eval:
+		addi s1 s1 1
+		parse_add1_handle_eval:
+		addi s1 s1 1
+		
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		addi t0 t0 1 # go to the next char
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
+		lb t2 0(t0) # t2 = curChar
+		li t3 40    # t3 = "("
+		beq t2 t3 nest2_handle_eval
+		j is_num2_handle_eval
+		nest2_handle_eval:
+			mv a0 t0
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+			
+			jal handle_eval
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
+			mv t0 a0 # new expression address
+			addi t0 t0 1 
+			mv s2 a1 # ndNum
+			j end_if2_handle_eval
+		is_num2_handle_eval:
+			add a0 t0 zero
+			
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+		
+			jal string_2_int
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp sp 4
+			
+			mv t0 a0 # new expression address
+			#addi t0 t0 1
+			
+			mv s2 a1 # ndNum
+		
+			addi s2 s2 1
+			beqz s2 syntactical_error
+			addi s2 s2 -1
+		end_if2_handle_eval:
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		mv a0 t0
+		jal skip_blank
+		mv t0 a0 # new expression address
+		
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# switch(op)
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		li t1 1
+		beq t1 s1 sum_handle_eval
+		addi t1 t1 1
+		beq t1 s1 sub_handle_eval
+		addi t1 t1 1
+		beq t1 s1 mul_handle_eval
+		addi t1 t1 1
+		beq t1 s1 div_handle_eval
+		j op_error
+		
+		sum_handle_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+			
+			jal sum_n_check_overflow
+			mv s0 a0
+		j end_switch_op_handle_eval
+		
+		sub_handle_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+			
+			jal sub_n_check_overflow
+			mv s0 a0
+		j end_switch_op_handle_eval
+		
+		mul_handle_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+			
+			jal multiply
+			mv s0 a0
+		j end_switch_op_handle_eval
+		
+		div_handle_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+		
+			jal divide
+			mv s0 a0
+			
+		end_switch_op_handle_eval:
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# curChar == ")" ? return : continue
+		li t6 41 # 41 = ")"
+		lb t2 0(t0)
+		
+		beq t2 t6 ret_handle_eval
+		j expression_error
+		
+		ret_handle_eval:
+		mv a0 t0
+		mv a1 s0
+		
+		# recovery
+  		lw t0 0(sp)
+   		lw t1 4(sp)
+   		lw t2 8(sp)
+   		lw t3 12(sp)
+   		lw t4 16(sp)
+   		lw t5 20(sp)
+   		lw t6 24(sp)
+   		lw s0 28(sp)
+   		lw s1 32(sp)
+   		lw s2 36(sp)
+   		lw ra 40(sp)
+   		addi sp sp 44
+		ret
+		
 		
 		
 	######################
