@@ -45,7 +45,7 @@
 
 
 .data
-	inpt_expr: .string "3+2"
+	inpt_expr: .string "3*2+5-2"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
@@ -88,7 +88,7 @@
 	##########################
 	hardware_error:
 		# print error
-		la a0 str_err_div_4_zero
+		la a0 str_err_overflow
 		li a7 4
 		ecall
 		
@@ -517,6 +517,96 @@
 	    lw ra 8(sp)
 	    addi sp sp 12
 		ret
+		
+		
+	################################
+	###   SUM N CHECK OVERFLOW   ###
+	################################
+	sum_n_check_overflow:
+		# backup
+	    addi sp sp -16
+	    sw t0 0(sp)
+	    sw t1 4(sp)
+	    sw t2 8(sp)
+	    sw t3 12(sp)
+	    
+		mv t0 a0     # stNum
+		mv t1 a1     # ndNum
+		li t2 0      # overflow checker
+		add t3 t0 t1 # res
+		
+		# overflow check
+		bltz t3 neg_res_sum
+		
+		# positive res
+			bltz t0 stNum_ltz_n_pos_res_sum
+			j ret_sum
+			stNum_ltz_n_pos_res_sum:
+			bltz t1 hardware_error
+			j ret_sum
+		
+		# negative res
+		neg_res_sum:
+			bgtz t0 stNum_gtz_n_neg_res_sum
+			j ret_sum
+			stNum_gtz_n_neg_res_sum:
+			bgtz t1 hardware_error
+		
+		ret_sum:
+		mv a0 t3
+		
+		# recovery
+	    lw t0 0(sp)
+	    lw t1 4(sp)
+	    lw t2 8(sp)
+	    lw t3 12(sp)
+	    addi sp sp 16
+		ret
+	
+	
+	################################
+	###   SUB N CHECK OVERFLOW   ###
+	################################
+	sub_n_check_overflow:
+		# backup
+	    addi sp sp -16
+	    sw t0 0(sp)
+	    sw t1 4(sp)
+	    sw t2 8(sp)
+	    sw t3 12(sp)
+	    
+		mv t0 a0     # stNum
+		mv t1 a1     # ndNum
+		li t2 0      # overflow checker
+		sub t3 t0 t1 # res
+		
+		# overflow check
+		bltz t3 neg_res_sub
+		
+		# positive res
+			bltz t0 stNum_ltz_n_pos_res_sub
+			j ret_sub
+			stNum_ltz_n_pos_res_sub:
+			bgez t1 hardware_error
+			j ret_sub
+		
+		# negative res
+		neg_res_sub:
+			bgez t0 stNum_gez_n_neg_res_sub
+			j ret_sub
+			stNum_gez_n_neg_res_sub:
+			bltz t1 hardware_error
+		
+		ret_sub:
+		mv a0 t3
+		
+		# recovery
+	    lw t0 0(sp)
+	    lw t1 4(sp)
+	    lw t2 8(sp)
+	    lw t3 12(sp)
+	    addi sp sp 16
+	    ret
 		
 
 	####################
