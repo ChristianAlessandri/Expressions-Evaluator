@@ -45,10 +45,11 @@
 
 
 .data
-	inpt_expr: .string "3*2+5-2"
+	inpt_expr: .string "3*2"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
+	str_err_expr: .string "SYNTACTICAL ERROR: Illegal expression"                # exit code: -3
 	str_err_unknown_op: .string "INTERNAL ERROR: Unknown operation"              # exit code: -100
 	
 	
@@ -97,13 +98,24 @@
 		li a7 93
 		ecall
 		
-		
-	#############################
-	###   SYNTACTICAL ERROR   ###
-	#############################
+	
+	##############################
+	###   SYNTACTICAL ERRORS   ###
+	##############################
 	syntactical_error:
 		# print error
 		la a0 str_err_syntactical
+		li a7 4
+		ecall
+		
+		# exit with error code -3
+		li a0 -3
+		li a7 93
+		ecall
+		
+	expression_error:
+		# print error
+		la a0 str_err_expr
 		li a7 4
 		ecall
 		
@@ -203,7 +215,6 @@
 		addi sp sp 4
 		
 		# isOp(curChar) ? parseOp() : error
-		next_op:
 		lb t2 0(t0) # t2 = curChar
 		
 		li t3 43    # +
@@ -349,9 +360,7 @@
 		# curChar == "\0" ? return : continue
 		lb t2 0(t0)
 		beqz t2 ret_eval
-		li s1 0 # op reset
-		li s2 0 # ndNum reset
-		j next_op
+		j expression_error
 		
 		ret_eval:
 		mv a0 s0
