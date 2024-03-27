@@ -45,10 +45,11 @@
 
 
 .data
-	inpt_expr: .string "3 +2"
+	inpt_expr: .string "3+2"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
-	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"     # exit code: -3
+	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
+	str_err_unknown_op: .string "INTERNAL ERROR: Unknown operation"              # exit code: -100
 	
 	
 .text
@@ -111,13 +112,26 @@
 		li a7 93
 		ecall
 		
+	###########################
+	###   OPERATION ERROR   ###
+	###########################
+	op_error:
+		# print error
+		la a0 str_err_unknown_op
+		li a7 4
+		ecall
+		
+		# exit with error code -100
+		li a0 -100
+		li a7 93
+		ecall
+		
 
 	################
 	###   EVAL   ###
 	################	
 	eval:
 		mv t0 a0  # expression
-		li t1 0   # len
 		li s0 0   # stNum
 		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
 		li s2 0   # ndNum
@@ -189,6 +203,7 @@
 		addi sp sp 4
 		
 		# isOp(curChar) ? parseOp() : error
+		next_op:
 		lb t2 0(t0) # t2 = curChar
 		
 		li t3 43    # +
@@ -280,7 +295,66 @@
 		lw ra 0(sp)
 		addi sp sp 4
 		
+		# switch(op)
+		# backup ra
+		addi sp sp -4
+		sw ra 0(sp)
+		
+		li t1 1
+		beq t1 s1 sum_eval
+		addi t1 t1 1
+		beq t1 s1 sub_eval
+		addi t1 t1 1
+		beq t1 s1 mul_eval
+		addi t1 t1 1
+		beq t1 s1 div_eval
+		j op_error
+		
+		sum_eval:
+			add a0 s0 zero
+			add a1 s2 zero
 			
+			jal sum_n_check_overflow
+			mv s0 a0
+		j end_switch_op_eval
+		
+		sub_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+			
+			jal sub_n_check_overflow
+			mv s0 a0
+		j end_switch_op_eval
+		
+		mul_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+			
+			jal multiply
+			mv s0 a0
+		j end_switch_op_eval
+		
+		div_eval:
+			add a0 s0 zero
+			add a1 s2 zero
+		
+			jal divide
+			mv s0 a0
+			
+		end_switch_op_eval:
+		# recovery ra
+		lw ra 0(sp)
+		addi sp sp 4
+		
+		# curChar == "\0" ? return : continue
+		lb t2 0(t0)
+		beqz t2 ret_eval
+		li s1 0 # op reset
+		li s2 0 # ndNum reset
+		j next_op
+		
+		ret_eval:
+		mv a0 s0
 		ret
 		
 	
