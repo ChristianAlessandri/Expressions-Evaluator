@@ -9,55 +9,6 @@
 #############################################
 
 
-.macro print_int(%int)
-	addi sp sp -8
-  	sw a0 0(sp)
-  	sw a7 4(sp)
-  	
-	mv a0, %int
-	li a7, 1
-	ecall
-	
-	lw a0 0(sp)
-    lw a7 4(sp)
-    addi sp sp 8
-.end_macro
-
-.macro print_char(%char)
-	addi sp sp -8
-  	sw a0 0(sp)
-  	sw a7 4(sp)
-  	
-	mv a0, %char
-	li a7, 11
-	ecall
-	
-	lw a0 0(sp)
-    lw a7 4(sp)
-    addi sp sp 8
-.end_macro
-
-.macro wrap()
-	addi sp sp -8
-  	sw a0 0(sp)
-  	sw a7 4(sp)
-  		
-	li a0 10
-	li a7 11
-	ecall
-	
-	lw a0 0(sp)
-    lw a7 4(sp)
-    addi sp sp 8
-.end_macro
-
-.macro exit()
-	li a0 1
-	li a7 93
-	ecall
-.end_macro
-
-
 .data
 	inpt_expr: .string "1+1"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
@@ -78,21 +29,19 @@
 		
 		# print res
 		la a0 inpt_expr
-		li a7 4
-		ecall
+		jal print_string
 		
-		li t1 32
-		print_char(t1)
-		li t1 61
-		print_char(t1)
-		li t1 32
-		print_char(t1)
+		li a0 32
+		jal print_char
+		li a0 61
+		jal print_char
+		li a0 32
+		jal print_char
 		
-		print_int(t0)
+		mv a0 t0
+		jal print_int
 		
-		# return 0
-    	li a7 10
-		ecall
+		j return_zero
 		
 	
 	######################
@@ -101,13 +50,11 @@
 	math_error:
 		# print error
 		la a0 str_err_div_4_zero
-		li a7 4
-		ecall
+		jal print_string
 		
 		# exit with error code -1
 		li a0 -1
-		li a7 93
-		ecall
+		j exit_with_error_code
 		
 		
 	##########################
@@ -116,13 +63,11 @@
 	hardware_error:
 		# print error
 		la a0 str_err_overflow
-		li a7 4
-		ecall
+		jal print_string
 		
 		# exit with error code -2
 		li a0 -2
-		li a7 93
-		ecall
+		j exit_with_error_code
 		
 	
 	##############################
@@ -131,18 +76,16 @@
 	syntactical_error:
 		# print error
 		la a0 str_err_syntactical
-		li a7 4
-		ecall
+		jal print_string
 		
-		wrap()
-		wrap()
+		jal wrap
+		jal wrap
 		
 		# print expr
 		la a0 inpt_expr
-		li a7 4
-		ecall
+		jal print_string
 		
-		wrap()
+		jal wrap
 		
 		# print error indicator
 		la t1 inpt_expr
@@ -151,34 +94,31 @@
 		blank_space_start_syntactical_error:
 		beqz t0 blank_space_end_syntactical_error
 			li a0 32
-			print_char(a0)
+			jal print_char
 			addi t0 t0 -1
 		j blank_space_start_syntactical_error
 		blank_space_end_syntactical_error:
 		
 		li a0 94
-		print_char(a0)
+		jal print_char
 		
 		# exit with error code -3
 		li a0 -3
-		li a7 93
-		ecall
+		j exit_with_error_code
 		
 	expression_error:
 		# print error
 		la a0 str_err_expr
-		li a7 4
-		ecall
+		jal print_string
 		
-		wrap()
-		wrap()
+		jal wrap
+		jal wrap
 		
 		# print expr
 		la a0 inpt_expr
-		li a7 4
-		ecall
+		jal print_string
 		
-		wrap()
+		jal wrap
 		
 		# print error indicator
 		la t1 inpt_expr
@@ -187,18 +127,18 @@
 		blank_space_start_expression_error:
 		beqz t0 blank_space_end_expression_error
 			li a0 32
-			print_char(a0)
+			jal print_char
 			addi t0 t0 -1
 		j blank_space_start_expression_error
 		blank_space_end_expression_error:
 		
 		li a0 94
-		print_char(a0)
+		jal print_char
 		
 		# exit with error code -3
 		li a0 -3
-		li a7 93
-		ecall
+		j exit_with_error_code
+		
 		
 	###########################
 	###   OPERATION ERROR   ###
@@ -206,13 +146,11 @@
 	op_error:
 		# print error
 		la a0 str_err_unknown_op
-		li a7 4
-		ecall
+		jal print_string
 		
 		# exit with error code -100
 		li a0 -100
-		li a7 93
-		ecall
+		j exit_with_error_code
 		
 
 	################
@@ -221,34 +159,26 @@
 	eval:
 		# backup
 		addi sp sp -44
-  		sw s0 0(sp)
-  		sw t0 4(sp)
-   		sw t1 8(sp)
-   		sw t2 12(sp)
-   		sw t3 16(sp)
-   		sw t4 20(sp)
-   		sw t5 24(sp)
-   		sw t6 28(sp)
-   		sw s0 32(sp)
-   		sw s1 36(sp)
-   		sw s2 40(sp)
+  		sw t0 0(sp)
+   		sw t1 4(sp)
+   		sw t2 8(sp)
+   		sw t3 12(sp)
+   		sw t4 16(sp)
+   		sw t5 20(sp)
+   		sw t6 24(sp)
+   		sw s0 28(sp)
+   		sw s1 32(sp)
+   		sw s2 36(sp)
+   		sw ra 40(sp)
    		
 		mv t0 a0  # expression
 		li s0 0   # stNum
 		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
 		li s2 0   # ndNum
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
@@ -258,15 +188,7 @@
 		nest1_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal handle_eval
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1
@@ -275,15 +197,7 @@
 		is_num1_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal string_2_int
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			mv s0 a1 # stNum
@@ -293,17 +207,9 @@
 			addi s0 s0 -1
 		end_if1_eval:
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# isOp(curChar) ? parseOp() : error
 		lb t2 0(t0) # t2 = curChar
@@ -331,18 +237,10 @@
 		parse_add1_eval:
 		addi s1 s1 1
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		addi t0 t0 1 # go to the next char
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
@@ -352,15 +250,7 @@
 		nest2_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal handle_eval
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1
@@ -369,16 +259,8 @@
 			j end_if2_eval
 		is_num2_eval:
 			add a0 t0 zero
-			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
 		
 			jal string_2_int
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			mv s2 a1 # ndNum
@@ -387,23 +269,12 @@
 			beqz s2 syntactical_error
 			addi s2 s2 -1
 		end_if2_eval:
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
 		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
-		
 		# switch(op)
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		li t1 1
 		beq t1 s1 sum_eval
 		addi t1 t1 1
@@ -446,9 +317,6 @@
 			mv s0 a0
 			
 		end_switch_op_eval:
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# curChar == "\0" ? return : continue
 		lb t2 0(t0)
@@ -459,17 +327,17 @@
 		mv a0 s0
 		
 		# recovery
-  		lw s0 0(sp)
-  		lw t0 4(sp)
-   		lw t1 8(sp)
-   		lw t2 12(sp)
-   		lw t3 16(sp)
-   		lw t4 20(sp)
-   		lw t5 24(sp)
-   		lw t6 28(sp)
-   		lw s0 32(sp)
-   		lw s1 36(sp)
-   		lw s2 40(sp)
+  		lw t0 0(sp)
+   		lw t1 4(sp)
+   		lw t2 8(sp)
+   		lw t3 12(sp)
+   		lw t4 16(sp)
+   		lw t5 20(sp)
+   		lw t6 24(sp)
+   		lw s0 28(sp)
+   		lw s1 32(sp)
+   		lw s2 36(sp)
+   		lw ra 40(sp)
    		addi sp sp 44
 		ret
 		
@@ -498,17 +366,9 @@
 		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
 		li s2 0   # ndNum
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
@@ -518,15 +378,7 @@
 		nest1_handle_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal handle_eval
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1
@@ -535,15 +387,7 @@
 		is_num1_handle_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal string_2_int
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			mv s0 a1 # stNum
@@ -553,17 +397,9 @@
 			addi s0 s0 -1
 		end_if1_handle_eval:
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# isOp(curChar) ? parseOp() : error
 		lb t2 0(t0) # t2 = curChar
@@ -591,18 +427,10 @@
 		parse_add1_handle_eval:
 		addi s1 s1 1
 		
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		addi t0 t0 1 # go to the next char
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
-		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
 		
 		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
@@ -612,15 +440,7 @@
 		nest2_handle_eval:
 			mv a0 t0
 			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
-			
 			jal handle_eval
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1 
@@ -628,16 +448,8 @@
 			j end_if2_handle_eval
 		is_num2_handle_eval:
 			add a0 t0 zero
-			
-			# backup ra
-			addi sp sp -4
-			sw ra 0(sp)
 		
 			jal string_2_int
-			
-			# recovery ra
-			lw ra 0(sp)
-			addi sp sp 4
 			
 			mv t0 a0 # new expression address
 			#addi t0 t0 1
@@ -648,23 +460,12 @@
 			beqz s2 syntactical_error
 			addi s2 s2 -1
 		end_if2_handle_eval:
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
 		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
-		
 		# switch(op)
-		# backup ra
-		addi sp sp -4
-		sw ra 0(sp)
-		
 		li t1 1
 		beq t1 s1 sum_handle_eval
 		addi t1 t1 1
@@ -707,10 +508,6 @@
 			mv s0 a0
 			
 		end_switch_op_handle_eval:
-		# recovery ra
-		lw ra 0(sp)
-		addi sp sp 4
-		
 		# curChar == ")" ? return : continue
 		li t6 41 # 41 = ")"
 		lb t2 0(t0)
@@ -1161,4 +958,83 @@
 	    lw t6 24(sp)
 	    addi sp sp 28
 		ret
+	
+
+	#########################
+	###   PRINT INTEGER   ###
+	#########################
+	print_int:
+		addi sp sp -4
+	  	sw a7 0(sp)
+	  	
+		li a7, 1
+		ecall
+		
+	    lw a0 4(sp)
+	    addi sp sp 4
+	    ret
+	    
+	    
+	########################
+	###   PRINT STRING   ###
+	########################
+	print_string:
+		addi sp sp -4
+	  	sw a7 0(sp)
+	  	
+		li a7 4
+		ecall
+		
+	    lw a0 4(sp)
+	    addi sp sp 4
+	    ret
+	    
+	      
+	###########################
+	###   PRINT CHARACTER   ###
+	###########################
+	print_char:
+		addi sp sp -4
+	  	sw a7 0(sp)
+	  	
+		li a7, 11
+		ecall
+		
+	    lw a0 4(sp)
+	    addi sp sp 4
+	    ret
+	    
+	    
+	#####################
+	###   WRAP TEXT   ###
+	#####################
+	wrap:
+		addi sp sp -8
+	  	sw a0 0(sp)
+	  	sw a7 4(sp)
+	  		
+		li a0 10
+		li a7 11
+		ecall
+		
+		lw a0 0(sp)
+	    lw a7 4(sp)
+	    addi sp sp 8
+	    ret
+	    
+	    
+	################################
+	###   EXIT WITH ERROR CODE   ###
+	################################
+	exit_with_error_code:
+		li a7 93
+		ecall
+	 
+	
+	####################
+	###   RETURN 0   ###
+	####################     
+	return_zero:
+    	li a7 10
+		ecall
 	
