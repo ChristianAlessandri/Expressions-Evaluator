@@ -59,7 +59,7 @@
 
 
 .data
-	inpt_expr: .string "(0-2)*100"
+	inpt_expr: .string "1+1"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
@@ -104,31 +104,6 @@
 		li a7 4
 		ecall
 		
-		wrap()
-		wrap()
-		
-		# print expr
-		la a0 inpt_expr
-		li a7 4
-		ecall
-		
-		wrap()
-		
-		# print error indicator
-		la t1 inpt_expr
-		sub t0 t0 t1
-		
-		blank_space_start_math_error:
-		beqz t0 blank_space_end_math_error
-			li a0 32
-			print_char(a0)
-			addi t0 t0 -1
-		j blank_space_start_math_error
-		blank_space_end_math_error:
-		
-		li a0 94
-		print_char(a0)
-		
 		# exit with error code -1
 		li a0 -1
 		li a7 93
@@ -144,33 +119,8 @@
 		li a7 4
 		ecall
 		
-		wrap()
-		wrap()
-		
-		# print expr
-		la a0 inpt_expr
-		li a7 4
-		ecall
-		
-		wrap()
-		
-		# print error indicator
-		la t1 inpt_expr
-		sub t0 t0 t1
-		
-		blank_space_start_hardware_error:
-		beqz t0 blank_space_end_hardware_error
-			li a0 32
-			print_char(a0)
-			addi t0 t0 -1
-		j blank_space_start_hardware_error
-		blank_space_end_hardware_error:
-		
-		li a0 94
-		print_char(a0)
-		
 		# exit with error code -2
-		li a0 -1
+		li a0 -2
 		li a7 93
 		ecall
 		
@@ -258,31 +208,6 @@
 		la a0 str_err_unknown_op
 		li a7 4
 		ecall
-		
-		wrap()
-		wrap()
-		
-		# print expr
-		la a0 inpt_expr
-		li a7 4
-		ecall
-		
-		wrap()
-		
-		# print error indicator
-		la t1 inpt_expr
-		sub t0 t0 t1
-		
-		blank_space_start_op_error:
-		beqz t0 blank_space_end_op_error
-			li a0 32
-			print_char(a0)
-			addi t0 t0 -1
-		j blank_space_start_op_error
-		blank_space_end_op_error:
-		
-		li a0 94
-		print_char(a0)
 		
 		# exit with error code -100
 		li a0 -100
@@ -1064,19 +989,48 @@
 	####################
 	multiply:
 		# backup
-	    addi sp sp -16
+	    addi sp sp -20
 	    sw t0 0(sp)
 	    sw t1 4(sp)
 	    sw t2 8(sp)
 	    sw t3 12(sp)
+	    sw t4 16(sp)
 
 		mv t0 a0 # a
 		mv t1 a1 # b
-		li t2 0 # res
+		li t2 0  # res
+		li t4 0  # overflow checker, 1: positive res, 0: zero res, -1: negative res
+		
+		beqz t0 stNum_eqz_multiply
+		beqz t1 ndNum_eqz_multiply
+		
+		bltz t0 stNum_ltz_multiply
+		bltz t1 stNum_gtz_n_ndNum_ltz_multiply
+		j stNum_n_ndNum_gtz_multiply
+		
+		stNum_ltz_multiply:
+		bltz t1 stNum_n_ndNum_ltz_multiply
+		j stNum_ltz_n_ndNum_gtz_multiply
+		
+		stNum_eqz_multiply:
+		ndNum_eqz_multiply:
+		li t4 0
+		j end_sign_check_multiply
+		
+		stNum_n_ndNum_gtz_multiply:
+		stNum_n_ndNum_ltz_multiply:
+		li t4 1
+		j end_sign_check_multiply
+		
+		stNum_gtz_n_ndNum_ltz_multiply:
+		stNum_ltz_n_ndNum_gtz_multiply:
+		li t4 -1
+		
+		end_sign_check_multiply:
 		
 		# while (b > 0)
 		start_loop_multiply:
-		beqz t1 ret_multiply
+		beqz t1 check_overflow_multiply
 			# if (y & 1)
 			andi t3 t1 1
 			beqz t3 least_significant_b_bit_neq_one
@@ -1086,6 +1040,23 @@
 			srli t1 t1 1
 		j start_loop_multiply
 		
+		check_overflow_multiply:
+			beqz t4 zero_res_multiply
+			addi t4 t4 -1
+			beqz t4 pos_res_multiply
+			
+			# neg_res_multiply
+				bltz t2 ret_multiply
+				j hardware_error
+			
+			zero_res_multiply:
+				beqz t2 ret_multiply
+				j hardware_error
+				
+			pos_res_multiply:
+				bgtz t2 ret_multiply
+				j hardware_error
+		
 		ret_multiply:
 		add a0 t2 zero
 		
@@ -1094,7 +1065,8 @@
 	    lw t1 4(sp)
 	    lw t2 8(sp)
 	    lw t3 12(sp)
-	    addi sp sp 16
+	    lw t4 16(sp)
+	    addi sp sp 20
 		ret
 		
 	
