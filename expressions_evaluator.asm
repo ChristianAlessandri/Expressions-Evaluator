@@ -15,7 +15,6 @@
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
 	str_err_expr: .string "SYNTACTICAL ERROR: Illegal expression"                # exit code: -3
-	str_err_unknown_op: .string "INTERNAL ERROR: Unknown operation"              # exit code: -100
 	
 	
 .text
@@ -137,19 +136,6 @@
 		
 		# exit with error code -3
 		li a0 -3
-		j exit_with_error_code
-		
-		
-	###########################
-	###   OPERATION ERROR   ###
-	###########################
-	op_error:
-		# print error
-		la a0 str_err_unknown_op
-		jal print_string
-		
-		# exit with error code -100
-		li a0 -100
 		j exit_with_error_code
 		
 
@@ -281,9 +267,14 @@
 		beq t1 s1 sub_eval
 		addi t1 t1 1
 		beq t1 s1 mul_eval
-		addi t1 t1 1
-		beq t1 s1 div_eval
-		j op_error
+		
+		# div_eval
+			add a0 s0 zero
+			add a1 s2 zero
+		
+			jal divide
+			mv s0 a0
+		j end_switch_op_eval
 		
 		sum_eval:
 			add a0 s0 zero
@@ -306,14 +297,6 @@
 			add a1 s2 zero
 			
 			jal multiply
-			mv s0 a0
-		j end_switch_op_eval
-		
-		div_eval:
-			add a0 s0 zero
-			add a1 s2 zero
-		
-			jal divide
 			mv s0 a0
 			
 		end_switch_op_eval:
@@ -472,9 +455,14 @@
 		beq t1 s1 sub_handle_eval
 		addi t1 t1 1
 		beq t1 s1 mul_handle_eval
-		addi t1 t1 1
-		beq t1 s1 div_handle_eval
-		j op_error
+		
+		# div_handle_eval
+			add a0 s0 zero
+			add a1 s2 zero
+		
+			jal divide
+			mv s0 a0
+		j end_switch_op_handle_eval
 		
 		sum_handle_eval:
 			add a0 s0 zero
@@ -497,14 +485,6 @@
 			add a1 s2 zero
 			
 			jal multiply
-			mv s0 a0
-		j end_switch_op_handle_eval
-		
-		div_handle_eval:
-			add a0 s0 zero
-			add a1 s2 zero
-		
-			jal divide
 			mv s0 a0
 			
 		end_switch_op_handle_eval:
