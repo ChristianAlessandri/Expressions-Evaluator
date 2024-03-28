@@ -59,7 +59,7 @@
 
 
 .data
-	inpt_expr: .string "3*(2+(3*(4+1)))"
+	inpt_expr: .string "(0-2)*100"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
@@ -104,6 +104,31 @@
 		li a7 4
 		ecall
 		
+		wrap()
+		wrap()
+		
+		# print expr
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		wrap()
+		
+		# print error indicator
+		la t1 inpt_expr
+		sub t0 t0 t1
+		
+		blank_space_start_math_error:
+		beqz t0 blank_space_end_math_error
+			li a0 32
+			print_char(a0)
+			addi t0 t0 -1
+		j blank_space_start_math_error
+		blank_space_end_math_error:
+		
+		li a0 94
+		print_char(a0)
+		
 		# exit with error code -1
 		li a0 -1
 		li a7 93
@@ -118,6 +143,31 @@
 		la a0 str_err_overflow
 		li a7 4
 		ecall
+		
+		wrap()
+		wrap()
+		
+		# print expr
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		wrap()
+		
+		# print error indicator
+		la t1 inpt_expr
+		sub t0 t0 t1
+		
+		blank_space_start_hardware_error:
+		beqz t0 blank_space_end_hardware_error
+			li a0 32
+			print_char(a0)
+			addi t0 t0 -1
+		j blank_space_start_hardware_error
+		blank_space_end_hardware_error:
+		
+		li a0 94
+		print_char(a0)
 		
 		# exit with error code -2
 		li a0 -1
@@ -134,6 +184,31 @@
 		li a7 4
 		ecall
 		
+		wrap()
+		wrap()
+		
+		# print expr
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		wrap()
+		
+		# print error indicator
+		la t1 inpt_expr
+		sub t0 t0 t1
+		
+		blank_space_start_syntactical_error:
+		beqz t0 blank_space_end_syntactical_error
+			li a0 32
+			print_char(a0)
+			addi t0 t0 -1
+		j blank_space_start_syntactical_error
+		blank_space_end_syntactical_error:
+		
+		li a0 94
+		print_char(a0)
+		
 		# exit with error code -3
 		li a0 -3
 		li a7 93
@@ -144,6 +219,31 @@
 		la a0 str_err_expr
 		li a7 4
 		ecall
+		
+		wrap()
+		wrap()
+		
+		# print expr
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		wrap()
+		
+		# print error indicator
+		la t1 inpt_expr
+		sub t0 t0 t1
+		
+		blank_space_start_expression_error:
+		beqz t0 blank_space_end_expression_error
+			li a0 32
+			print_char(a0)
+			addi t0 t0 -1
+		j blank_space_start_expression_error
+		blank_space_end_expression_error:
+		
+		li a0 94
+		print_char(a0)
 		
 		# exit with error code -3
 		li a0 -3
@@ -158,6 +258,31 @@
 		la a0 str_err_unknown_op
 		li a7 4
 		ecall
+		
+		wrap()
+		wrap()
+		
+		# print expr
+		la a0 inpt_expr
+		li a7 4
+		ecall
+		
+		wrap()
+		
+		# print error indicator
+		la t1 inpt_expr
+		sub t0 t0 t1
+		
+		blank_space_start_op_error:
+		beqz t0 blank_space_end_op_error
+			li a0 32
+			print_char(a0)
+			addi t0 t0 -1
+		j blank_space_start_op_error
+		blank_space_end_op_error:
+		
+		li a0 94
+		print_char(a0)
 		
 		# exit with error code -100
 		li a0 -100
