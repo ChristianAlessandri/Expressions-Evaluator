@@ -28,22 +28,27 @@
 	################
 	main:
 		la a0 inpt_expr
-		li a1 0 # res
-		li a2 0 # 0: mainExpr, 1: subExpr
+		li a1 0 # 0: mainExpr, 1: subExpr
 		jal eval
 		mv t0 a1
 		
-		# print res
+		# print inpt_expr
 		la a0 inpt_expr
 		jal print_string
 		
-		li a0 32
-		jal print_char
-		li a0 61
-		jal print_char
+		# print " "
 		li a0 32
 		jal print_char
 		
+		# print "="
+		li a0 61
+		jal print_char
+		
+		# print " "
+		li a0 32
+		jal print_char
+		
+		# print res
 		mv a0 t0
 		jal print_int
 		
@@ -151,40 +156,35 @@
 	################	
 	eval:
 		# backup
-		addi sp sp -48
+		addi sp sp -32
   		sw t0 0(sp)
    		sw t1 4(sp)
    		sw t2 8(sp)
-   		sw t3 12(sp)
-   		sw t4 16(sp)
-   		sw t5 20(sp)
-   		sw t6 24(sp)
-   		sw s0 28(sp)
-   		sw s1 32(sp)
-   		sw s2 36(sp)
-   		sw s3 40(sp)
-   		sw ra 44(sp)
+   		sw s0 12(sp)
+   		sw s1 16(sp)
+   		sw s2 20(sp)
+   		sw s3 24(sp)
+   		sw ra 28(sp)
    		
-		mv t0 a0  # expression
-		mv s0 a1   # stNum
+		mv t0 a0  # expression address
+		li s0 0   # stNum
 		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
 		li s2 0   # ndNum
-		mv s3 a2  # 0: mainExpr, 1: subExpr
+		mv s3 a1  # 0: mainExpr, 1: subExpr
 		
 		mv a0 t0
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
-		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
+		# curChar == "(" ? eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
-		li t3 40    # t3 = "("
-		beq t2 t3 nest1_eval
+		li t1 40    # t3 = "("
+		beq t2 t1 nest1_eval
 		j is_num1_eval
 		nest1_eval:
 			mv a0 t0
 			addi a0 a0 1
-			li a1 0
-			li a2 1 
+			li a1 1
 			
 			jal eval
 			
@@ -212,17 +212,17 @@
 		# isOp(curChar) ? parseOp() : error
 		lb t2 0(t0) # t2 = curChar
 		
-		li t3 43    # +
-		beq t2 t3 parse_add1_eval
+		li t1 43    # +
+		beq t2 t1 parse_add1_eval
 		
-		li t3 45    # -
-		beq t2 t3 parse_sub1_eval
+		li t1 45    # -
+		beq t2 t1 parse_sub1_eval
 		
-		li t3 42    # *
-		beq t2 t3 parse_mul1_eval
+		li t1 42    # *
+		beq t2 t1 parse_mul1_eval
 		
-		li t3 47    # /
-		beq t2 t3 parse_div1_eval
+		li t1 47    # /
+		beq t2 t1 parse_div1_eval
 		j syntactical_error
 		
 		li s1 0
@@ -240,16 +240,15 @@
 		jal skip_blank
 		mv t0 a0 # new expression address
 		
-		# curChar == "(" ? handle_eval() : is_digit(curChar) ? string_2_int() : error
+		# curChar == "(" ? eval() : is_digit(curChar) ? string_2_int() : error
 		lb t2 0(t0) # t2 = curChar
-		li t3 40    # t3 = "("
-		beq t2 t3 nest2_eval
+		li t1 40    # t3 = "("
+		beq t2 t1 nest2_eval
 		j is_num2_eval
 		nest2_eval:
 			mv a0 t0
 			addi a0 a0 1
-			li a1 0
-			li a2 1
+			li a1 1
 			
 			jal eval
 			
@@ -320,8 +319,8 @@
 		lb t2 0(t0)
 		beqz s3 main_expr_eval
 		# sub_expr_eval
-			li t6 41 # 41 = ")"
-			beq t2 t6 ret_eval
+			li t1 41 # 41 = ")"
+			beq t2 t1 ret_eval
 			j expression_error
 		
 		main_expr_eval:
@@ -336,16 +335,12 @@
   		lw t0 0(sp)
    		lw t1 4(sp)
    		lw t2 8(sp)
-   		lw t3 12(sp)
-   		lw t4 16(sp)
-   		lw t5 20(sp)
-   		lw t6 24(sp)
-   		lw s0 28(sp)
-   		lw s1 32(sp)
-   		lw s2 36(sp)
-   		lw s3 40(sp)
-   		lw ra 44(sp)
-   		addi sp sp 48
+   		lw s0 12(sp)
+   		lw s1 16(sp)
+   		lw s2 20(sp)
+   		lw s3 24(sp)
+   		lw ra 28(sp)
+   		addi sp sp 32
 		ret
 		
 		
