@@ -15,7 +15,7 @@
 
 
 .data
-	inpt_expr: .string "2147483646+1"
+	inpt_expr: .string "22*(0-4)"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"                     # exit code: -1
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow" # exit code: -2
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"          # exit code: -3
@@ -386,14 +386,13 @@
 	#########################	
 	string_2_int:
 		# backup
-		addi sp sp -28
+		addi sp sp -24
 	    sw t0 0(sp)
 	    sw t1 4(sp)
 	    sw t2 8(sp)
 	    sw t3 12(sp)
 	    sw t4 16(sp)
 	    sw t5 20(sp)
-	    sw ra 24(sp)
 	    
 		mv t0 a0 # string
 		li t1 0  # numLen
@@ -421,13 +420,21 @@
 		
 		li t2 0 # res
 		li t5 0 # i = 0
-		# while(i < numLen)
+		# while i < numLen
 		start_make_int_string_2_int:
 		beq t5 t1 end_make_int_string_2_int
+			# backup ra
+			addi sp sp -4
+			sw ra 0(sp)
+		
 			# pow
 			li a0 10
 			add a1 t5 zero
 			jal pow
+			
+			# recovery ra
+			lw ra 0(sp)
+			addi sp, sp, 4
 			
 			# recovery digit
 			lw t3 0(sp)
@@ -456,8 +463,7 @@
 	    lw t3 12(sp)
 	    lw t4 16(sp)
 	    lw t5 20(sp)
-	    lw ra 24(sp)
-	    addi sp sp 28
+	    addi sp sp 24
 		ret
 		
 	
@@ -498,34 +504,43 @@
 	################################
 	sum_n_check_overflow:
 		# backup
-	    addi sp sp -4
+	    addi sp sp -16
 	    sw t0 0(sp)
+	    sw t1 4(sp)
+	    sw t2 8(sp)
+	    sw t3 12(sp)
 	    
-		add t0 a0 a1 # res
+		mv t0 a0     # stNum
+		mv t1 a1     # ndNum
+		li t2 0      # overflow checker
+		add t3 t0 t1 # res
 		
 		# overflow check
-		bltz t0 neg_res_sum
+		bltz t3 neg_res_sum
 		
 		# positive res
-			bltz a0 stNum_ltz_n_pos_res_sum
+			bltz t0 stNum_ltz_n_pos_res_sum
 			j ret_sum
 			stNum_ltz_n_pos_res_sum:
-			bltz a1 hardware_error
+			bltz t1 hardware_error
 			j ret_sum
 		
 		# negative res
 		neg_res_sum:
-			bgtz a0 stNum_gtz_n_neg_res_sum
+			bgtz t0 stNum_gtz_n_neg_res_sum
 			j ret_sum
 			stNum_gtz_n_neg_res_sum:
-			bgtz a1 hardware_error
+			bgtz t1 hardware_error
 		
 		ret_sum:
-		mv a0 t0
+		mv a0 t3
 		
 		# recovery
 	    lw t0 0(sp)
-	    addi sp sp 4
+	    lw t1 4(sp)
+	    lw t2 8(sp)
+	    lw t3 12(sp)
+	    addi sp sp 16
 		ret
 	
 	
@@ -534,34 +549,40 @@
 	################################
 	sub_n_check_overflow:
 		# backup
-	    addi sp sp -4
+	    addi sp sp -12
 	    sw t0 0(sp)
+	    sw t1 4(sp)
+	    sw t2 8(sp)
 	    
-		sub t0 t0 t1 # res
+		mv t0 a0     # stNum
+		mv t1 a1     # ndNum
+		sub t2 t0 t1 # res
 		
 		# overflow check
-		bltz t0 neg_res_sub
+		bltz t2 neg_res_sub
 		
 		# positive res
-			bltz a0 stNum_ltz_n_pos_res_sub
+			bltz t0 stNum_ltz_n_pos_res_sub
 			j ret_sub
 			stNum_ltz_n_pos_res_sub:
-			bgez a1 hardware_error
+			bgez t1 hardware_error
 			j ret_sub
 		
 		# negative res
 		neg_res_sub:
-			bgez a0 stNum_gez_n_neg_res_sub
+			bgez t0 stNum_gez_n_neg_res_sub
 			j ret_sub
 			stNum_gez_n_neg_res_sub:
-			bltz a1 hardware_error
+			bltz t1 hardware_error
 		
 		ret_sub:
-		mv a0 t0
+		mv a0 t2
 		
 		# recovery
 	    lw t0 0(sp)
-	    addi sp sp 4
+	    lw t1 4(sp)
+	    lw t2 8(sp)
+	    addi sp sp 12
 	    ret
 		
 
@@ -821,4 +842,3 @@
 	return_zero:
     	li a7 10
 		ecall
-	
