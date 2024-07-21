@@ -15,7 +15,7 @@
 
 
 .data
-	inpt_expr: .string "22*(0-4)"
+	inpt_expr: .string "(621/30)*( 29 + (442-107))"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow"
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"
@@ -431,10 +431,20 @@
 			# recovery digit
 			lw t3 0(sp)
 			addi sp, sp, 4
-			
+
+			# backup return address
+			addi sp sp -4
+			sw ra 0(sp)
+
 			# res += digit * 10^i
-			mul t4 t3 a0
+			add a1 t3 zero
+			jal multiply
+			add t4 a0 zero
 			add t2 t2 t4
+
+			# recovery return address
+			lw ra 0(sp)
+			addi sp sp 4
 			
 			addi t5 t5 1   # i++
 		j start_make_int_string_2_int
@@ -475,7 +485,7 @@
 		li a0 1  # res
 		start_loop_pow:
 		beqz t1 end_loop_pow
-			# mul a0 a0 t0 
+			# mul a0 a1 t0 
 			# res *= base
 			add a1 t0 zero
 			jal multiply
@@ -583,12 +593,13 @@
 	####################
 	multiply:
 		# backup
-	    addi sp sp -20
+	    addi sp sp -24
 	    sw t0 0(sp)
 	    sw t1 4(sp)
 	    sw t2 8(sp)
 	    sw t3 12(sp)
 	    sw t4 16(sp)
+			sw t5 20(sp)
 
 		mv t0 a0 # a
 		mv t1 a1 # b
@@ -660,7 +671,8 @@
 	    lw t2 8(sp)
 	    lw t3 12(sp)
 	    lw t4 16(sp)
-	    addi sp sp 20
+			lw t5 20(sp)
+	    addi sp sp 24
 		ret
 		
 	
