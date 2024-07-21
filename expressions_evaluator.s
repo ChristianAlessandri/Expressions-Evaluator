@@ -152,17 +152,17 @@
   		sw t0 0(sp)
    		sw t1 4(sp)
    		sw t2 8(sp)
-   		sw s0 12(sp)
-   		sw s1 16(sp)
-   		sw s2 20(sp)
-   		sw s3 24(sp)
+   		sw t3 12(sp)
+   		sw t4 16(sp)
+   		sw t5 20(sp)
+   		sw t6 24(sp)
    		sw ra 28(sp)
    		
 		mv t0 a0  # expression address
-		li s0 0   # stNum
-		li s1 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
-		li s2 0   # ndNum
-		mv s3 a1  # 0: mainExpr, 1: subExpr
+		li t3 0   # stNum
+		li t4 0   # op | 0: null, 1: +, 2: -, 3: *, 4: /
+		li t5 0   # ndNum
+		mv t6 a1  # 0: mainExpr, 1: subExpr
 		
 		mv a0 t0
 		jal skip_blank
@@ -182,7 +182,7 @@
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1
-			mv s0 a1 # stNum
+			mv t3 a1 # stNum
 			j end_if1_eval
 		is_num1_eval:
 			mv a0 t0
@@ -190,11 +190,11 @@
 			jal string_2_int
 			
 			mv t0 a0 # new expression address
-			mv s0 a1 # stNum
+			mv t3 a1 # stNum
 		
-			addi s0 s0 1
-			beqz s0 syntactical_error
-			addi s0 s0 -1
+			addi t3 t3 1
+			beqz t3 syntactical_error
+			addi t3 t3 -1
 		end_if1_eval:
 		
 		mv a0 t0
@@ -217,15 +217,15 @@
 		beq t2 t1 parse_div1_eval
 		j syntactical_error
 		
-		li s1 0
+		li t4 0
 		parse_div1_eval:
-		addi s1 s1 1
+		addi t4 t4 1
 		parse_mul1_eval:
-		addi s1 s1 1
+		addi t4 t4 1
 		parse_sub1_eval:
-		addi s1 s1 1
+		addi t4 t4 1
 		parse_add1_eval:
-		addi s1 s1 1
+		addi t4 t4 1
 		
 		addi t0 t0 1 # go to the next char
 		mv a0 t0
@@ -246,7 +246,7 @@
 			
 			mv t0 a0 # new expression address
 			addi t0 t0 1
-			mv s2 a1 # ndNum
+			mv t5 a1 # ndNum
 			
 			j end_if2_eval
 		is_num2_eval:
@@ -255,11 +255,11 @@
 			jal string_2_int
 			
 			mv t0 a0 # new expression address
-			mv s2 a1 # ndNum
+			mv t5 a1 # ndNum
 		
-			addi s2 s2 1
-			beqz s2 syntactical_error
-			addi s2 s2 -1
+			addi t5 t5 1
+			beqz t5 syntactical_error
+			addi t5 t5 -1
 		end_if2_eval:
 		
 		mv a0 t0
@@ -268,48 +268,48 @@
 		
 		# switch(op)
 		li t1 1
-		beq t1 s1 sum_eval
+		beq t1 t4 sum_eval
 		addi t1 t1 1
-		beq t1 s1 sub_eval
+		beq t1 t4 sub_eval
 		addi t1 t1 1
-		beq t1 s1 mul_eval
+		beq t1 t4 mul_eval
 		
 		# div_eval
-			add a0 s0 zero
-			add a1 s2 zero
+			add a0 t3 zero
+			add a1 t5 zero
 		
 			jal div
-			mv s0 a0
+			mv t3 a0
 		j end_switch_op_eval
 		
 		sum_eval:
-			add a0 s0 zero
-			add a1 s2 zero
+			add a0 t3 zero
+			add a1 t5 zero
 			
 			jal sum_n_check_overflow
-			mv s0 a0
+			mv t3 a0
 		j end_switch_op_eval
 		
 		sub_eval:
-			add a0 s0 zero
-			add a1 s2 zero
+			add a0 t3 zero
+			add a1 t5 zero
 			
 			jal sub_n_check_overflow
-			mv s0 a0
+			mv t3 a0
 		j end_switch_op_eval
 		
 		mul_eval:
-			add a0 s0 zero
-			add a1 s2 zero
+			add a0 t3 zero
+			add a1 t5 zero
 			
 			jal mul
-			mv s0 a0
+			mv t3 a0
 			
 		end_switch_op_eval:
 		
 		# curChar == "\0" ? return : continue
 		lb t2 0(t0)
-		beqz s3 main_expr_eval
+		beqz t6 main_expr_eval
 		# sub_expr_eval
 			li t1 41 # 41 = ")"
 			beq t2 t1 ret_eval
@@ -321,16 +321,16 @@
 		
 		ret_eval:
 		mv a0 t0
-		mv a1 s0
+		mv a1 t3
 		
 		# recovery
   		lw t0 0(sp)
    		lw t1 4(sp)
    		lw t2 8(sp)
-   		lw s0 12(sp)
-   		lw s1 16(sp)
-   		lw s2 20(sp)
-   		lw s3 24(sp)
+   		lw t3 12(sp)
+   		lw t4 16(sp)
+   		lw t5 20(sp)
+   		lw t6 24(sp)
    		lw ra 28(sp)
    		addi sp sp 32
 		ret
