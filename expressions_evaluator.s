@@ -278,7 +278,7 @@
 			add a0 s0 zero
 			add a1 s2 zero
 		
-			jal divide
+			jal div
 			mv s0 a0
 		j end_switch_op_eval
 		
@@ -302,7 +302,7 @@
 			add a0 s0 zero
 			add a1 s2 zero
 			
-			jal multiply
+			jal mul
 			mv s0 a0
 			
 		end_switch_op_eval:
@@ -438,7 +438,7 @@
 
 			# res += digit * 10^i
 			add a1 t3 zero
-			jal multiply
+			jal mul
 			add t4 a0 zero
 			add t2 t2 t4
 
@@ -485,10 +485,9 @@
 		li a0 1  # res
 		start_loop_pow:
 		beqz t1 end_loop_pow
-			# mul a0 a1 t0 
 			# res *= base
 			add a1 t0 zero
-			jal multiply
+			jal mul
 			addi t1 t1 -1 # exp--
 		j start_loop_pow
 		end_loop_pow:
@@ -588,10 +587,10 @@
 	    ret
 		
 
-	####################
-	###   MULTIPLY   ###
-	####################
-	multiply:
+	###############
+	###   MUL   ###
+	###############
+	mul:
 		# backup
 	    addi sp sp -24
 	    sw t0 0(sp)
@@ -676,10 +675,10 @@
 		ret
 		
 	
-	##################
-	###   DIVIDE   ###
-	##################
-	divide:
+	###############
+	###   DIV   ###
+	###############
+	div:
 		# backup
 	    addi sp sp -28
 	    sw t0 0(sp)
