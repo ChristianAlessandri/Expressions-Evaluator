@@ -15,7 +15,7 @@
 
 
 .data
-	inpt_expr: .string "(621/30)*( 29 + (442-107))"
+	inpt_expr: .string "5/0"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow"
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"
@@ -692,6 +692,12 @@
 		mv t0 a0 # a
 		mv t1 a1 # b
 		beqz t1 math_error # b == 0 ? error : continue
+		# b == 1 ? return a : continue
+		addi t1 t1 -1
+		beqz t1 divider_equal_one_divide
+		addi t1 t1 2
+		beqz t1 divider_equal_minus_one_divide
+		addi t1 t1 -1
 		li t2 0  # isResultNegative, 0 = false, 1 = true
 		
 		# sign verification
@@ -755,6 +761,19 @@
 			
 		pos_res_divide:
 		add a0 t3 zero
+		j skip_special_cases_divide
+		
+		divider_equal_one_divide:
+		add a0 t0 zero
+		j skip_special_cases_divide
+		
+		divider_equal_minus_one_divide:
+		li t6 -2147483648
+		beq t0 t6 hardware_error
+		sub t0 t0 t0
+		sub t0 t0 t0
+		
+		skip_special_cases_divide:
 		
 		# recovery
 		lw t0 0(sp)
