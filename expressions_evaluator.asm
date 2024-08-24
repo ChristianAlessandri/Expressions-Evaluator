@@ -15,7 +15,7 @@
 
 
 .data
-	inpt_expr: .string "5/0"
+	inpt_expr: .string "1 + (3 * (2      /2)    )"
 	str_err_div_4_zero: .string "MATH ERROR: Divide by zero"
 	str_err_overflow: .string "HARDWARE ERROR: Expression generated an overflow"
 	str_err_syntactical: .string "SYNTACTICAL ERROR: Illegal character"
